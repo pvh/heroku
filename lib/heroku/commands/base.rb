@@ -64,8 +64,7 @@ module Heroku::Command
       end
     end
 
-    def display_config_changes(old_config)
-      config = heroku.config_vars(app)
+    def display_config_changes(old_config, config)
       changes = (config.keys + old_config.keys).inject({}) do |memo, key|
         unless config[key] == old_config[key]
           memo[key] = [old_config[key], config[key]]
@@ -83,6 +82,13 @@ module Heroku::Command
           display("  + #{key}=>#{became}") if became
         end
       end
+    end
+
+    def with_display_config_changes(old_config)
+      old_config = heroku.config_vars(app)
+      yield
+      config     = heroku.config_vars(app)
+      display_config_changes(old_config, config)
     end
 
     def git_remotes(base_dir)
