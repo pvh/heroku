@@ -69,13 +69,13 @@ module HerokuPostgresql
 
     def http_post(path, payload = {})
       checking_client_version do
-        sym_keys(json_decode(@heroku_postgresql_resource[path].post(payload.to_json).to_s))
+        sym_keys(json_decode(@heroku_postgresql_resource[path].post(json_encode(payload)).to_s))
       end
     end
 
     def http_put(path, payload = {})
       checking_client_version do
-        sym_keys(json_decode(@heroku_postgresql_resource[path].put(payload.to_json).to_s))
+        sym_keys(json_decode(@heroku_postgresql_resource[path].put(json_encode(payload)).to_s))
       end
     end
   end
