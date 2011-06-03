@@ -1,4 +1,5 @@
 require "heroku/command/base"
+require "heroku/pg_resolver"
 require "heroku/pgutils"
 require "pgbackups/client"
 
@@ -6,6 +7,7 @@ module Heroku::Command
 
   # manage backups of heroku postgresql databases
   class Pgbackups < BaseWithApp
+    include PGResolver
     include PgUtils
 
     # pgbackups
@@ -49,22 +51,19 @@ module Heroku::Command
     # -e, --expire  # if no slots are available to capture, delete the oldest backup to make room
     #
     def capture
-      expire = extract_option("--expire")
-      db_id = args.shift
-      from_name, from_url = resolve_db_id(db_id, :default => "DATABASE_URL")
-      db_id ||= "DATABASE_URL"
+      db = resolve_db(:allow_default => true)
 
-      abort(" !   No database addon detected.") unless from_url
+      from_url  = db[:url]
+      from_name = db[:name]
+      to_url    = nil # server will assign
+      to_name   = "BACKUP"
+      opts      = {:expire => extract_option("--expire")}
 
-      to_name = "BACKUP"
-      to_url = nil # server will assign
-
-      opts = {}
-      opts[:expire] = true if expire
       backup = transfer!(from_url, from_name, to_url, to_name, opts)
+
       to_uri = URI.parse backup["to_url"]
       backup_id = to_uri.path.empty? ? "error" : File.basename(to_uri.path, '.*')
-      display "\n#{db_id}  ----backup--->  #{backup_id}"
+      display "\n#{db[:pretty_name]}  ----backup--->  #{backup_id}"
 
       backup = poll_transfer!(backup)
 
@@ -84,13 +83,11 @@ module Heroku::Command
     #
     # -d, --db DATABASE  # the database id to target for the restore
     #
+    
     def restore
-      db_id = extract_option("--db")
-      confirm = extract_option("--confirm")
-      to_name, to_url = resolve_db_id(db_id, :default => "DATABASE_URL")
-      db_id = to_name
-
-      abort(" !   No database addon detected.") unless to_url
+      db = resolve_db(:allow_default => true)
+      to_name = db[:name]
+      to_url  = db[:url]
 
       backup_id = args.shift
 
@@ -114,17 +111,15 @@ module Heroku::Command
         from_name = "BACKUP"
       end
 
-      db_display = db_id
-      db_display += " (DATABASE_URL)" if db_id != "DATABASE_URL" && config_vars[db_id] == config_vars["DATABASE_URL"]
-      padding = " " * "#{db_display}  <---restore---  ".length
-      display "\n#{db_display}  <---restore---  #{backup_id}"
+      message = "#{db[:pretty_name]}  <---restore---  "
+      padding = " " * message.length
+      display "\n#{message}#{backup_id}"
       if backup
         display padding + "#{backup['from_name']}"
         display padding + "#{backup['created_at']}"
         display padding + "#{backup['size']}"
       end
 
-      @args += ['--confirm', confirm]
       if confirm_command
         restore = transfer!(from_url, from_name, to_url, to_name)
         restore = poll_transfer!(restore)
