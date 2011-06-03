@@ -4,6 +4,7 @@ require "heroku/pg_resolver"
 require "heroku-postgresql/client"
 
 module Heroku::Command
+  # manage heroku postgresql databases
   class Pg < BaseWithApp
     include PgUtils
     include PGResolver
@@ -17,7 +18,7 @@ module Heroku::Command
     def info
       specified_db_or_all { |db| display_db_info db }
     end
-    
+
     # pg:ingress [DATABASE]
     #
     # allow direct connections to the database from this IP for one minute
@@ -219,7 +220,7 @@ private
       end
       @seen_progress = progress
     end
-    
+
     def delta_format(start, finish = Time.now)
       secs = (finish.to_i - start.to_i).abs
       mins = (secs/60).round
@@ -244,27 +245,27 @@ private
         "#{secs}s"
       end
     end
-    
+
     KB = 1024      unless self.const_defined?(:KB)
     MB = 1024 * KB unless self.const_defined?(:MB)
     GB = 1024 * MB unless self.const_defined?(:GB)
-    
+
     def size_format(bytes)
       return "#{bytes} B" if bytes < KB
       return "#{(bytes / KB)} KB" if bytes < MB
       return format("%.1f MB", (bytes.to_f / MB)) if bytes < GB
       return format("%.2f GB", (bytes.to_f / GB))
     end
-    
+
     def time_format(time)
       time = Time.parse(time) if time.is_a?(String)
       time.strftime("%Y-%m-%d %H:%M %Z")
     end
-    
+
     def timestamp_name
       Time.now.strftime("%Y-%m-%d-%H:%M:%S")
     end
-    
+
     def has_binary?(binary)
       `which #{binary}` != ""
     end
