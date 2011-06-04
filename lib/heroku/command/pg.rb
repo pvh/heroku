@@ -221,31 +221,6 @@ private
       @seen_progress = progress
     end
 
-    def delta_format(start, finish = Time.now)
-      secs = (finish.to_i - start.to_i).abs
-      mins = (secs/60).round
-      hours = (mins / 60).round
-      days = (hours / 24).round
-      weeks = (days / 7).round
-      months = (weeks / 4.3).round
-      years = (months / 12).round
-      if years > 0
-        "#{years} yr"
-      elsif months > 0
-        "#{months} mo"
-      elsif weeks > 0
-        "#{weeks} wk"
-      elsif days > 0
-        "#{days}d"
-      elsif hours > 0
-        "#{hours}h"
-      elsif mins > 0
-        "#{mins}m"
-      else
-        "#{secs}s"
-      end
-    end
-
     KB = 1024      unless self.const_defined?(:KB)
     MB = 1024 * KB unless self.const_defined?(:MB)
     GB = 1024 * MB unless self.const_defined?(:GB)
@@ -260,14 +235,6 @@ private
     def time_format(time)
       time = Time.parse(time) if time.is_a?(String)
       time.strftime("%Y-%m-%d %H:%M %Z")
-    end
-
-    def timestamp_name
-      Time.now.strftime("%Y-%m-%d-%H:%M:%S")
-    end
-
-    def has_binary?(binary)
-      `which #{binary}` != ""
     end
   end
 end
