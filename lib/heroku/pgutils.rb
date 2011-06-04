@@ -1,4 +1,8 @@
+require 'heroku/pg_resolver'
+
 module PgUtils
+  include PGResolver
+
   def spinner(ticks)
     %w(/ - \\ |)[ticks % 4]
   end
@@ -7,40 +11,40 @@ module PgUtils
     display(format("%-12s %s", label, info))
   end
 
-  def pg_config_var_names
-    # all config vars that are a postgres:// URL
-    pg_config_vars = config_vars.reject { |k,v| not v =~ /^postgres:\/\// }
-    pg_config_vars.keys.sort!
-  end
+  def munge_fork_and_follow(addon)
+    %w[fork follow].each do |opt|
+      if index = args.index("--#{opt}")
+        val = args.delete_at index+1
+        args.delete_at index
 
-  def resolve_db_id(input, opts={})
-    name = input || opts[:default]
+        resolved = Resolver.new(val, config_vars)
+        display resolved.message if resolved.message
+        abort_with_database_list(val) unless resolved[:url]
 
-    # try to find addon config var name from all config vars
-    # if name is 'DATABASE_URL', try to return the addon config var name for better accounting
-    output = nil
-    addon_config_vars = pg_config_var_names - ["DATABASE_URL"]
-    addon_config_vars.each do |n|
-      next unless config_vars[n] == config_vars[name]
-      return n, config_vars[n], config_vars[n] == config_vars["DATABASE_URL"]
+        url = resolved[:url]
+        db = HerokuPostgresql::Client.new(url).get_database
+        db_plan = db[:plan]
+        version = db[:postgresql_version]
+
+        abort " !  You cannot fork a database unless it is currently available." unless db[:state] == "available"
+        abort " !  PostgreSQL v#{version} cannot be #{opt}ed. Please upgrade to a newer version." if '8' == version.split(/\./).first
+        addon_plan = addon.split(/:/)[1] || 'ronin'
+
+        funin = ["ronin", "fugu"]
+        if     funin.member?(addon_plan) &&  funin.member?(db_plan)
+          # fantastic
+        elsif  funin.member?(addon_plan) && !funin.member?(db_plan)
+          abort " !  Cannot #{opt} a #{resolved[:name]} to a ronin or a fugu database."
+        elsif !funin.member?(addon_plan) &&  funin.member?(db_plan)
+          abort " !  Can only #{opt} #{resolved[:name]} to a ronin or a fugu database."
+        elsif !funin.member?(addon_plan) && !funin.member?(db_plan)
+          # even better!
+        end
+
+        args << "#{opt}=#{url}"
+      end
     end
-
-    # database url isn't an alias for another var
-    return name, config_vars[name], true if name == "DATABASE_URL"
-
-    if name
-      display " !   Database #{name} not found in config."
-    else
-      display opts[:usage_message] || " !   Specify a database with --db <DATABASE>."
-    end
-    display " !   "
-    display " !   Available database URLs:"
-    addon_config_vars.each do |v|
-      str = " !   #{v}"
-      str += " (currently DATABASE_URL)" if config_vars[v] == config_vars["DATABASE_URL"]
-      display str
-    end
-    abort
+    return args
   end
 
 end
