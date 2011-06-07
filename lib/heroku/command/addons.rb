@@ -187,7 +187,7 @@ module Heroku::Command
 
       def configure_addon(label, &install_or_upgrade)
         addon = args.shift
-        raise CommandFailed.new("Missing add-on name") unless addon
+        raise CommandFailed.new("Missing add-on name") if addon.nil? || ["--fork", "--follow"].include?(addon)
         munge_fork_and_follow(addon) if addon =~ /^heroku-postgresql/
 
         config = {}
