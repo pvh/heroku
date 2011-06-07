@@ -75,17 +75,16 @@ module Heroku::Command
       end
     end
 
-    # pgbackups:restore [BACKUP_ID]
+    # pgbackups:restore [DATABASE] <BACKUP_ID|BACKUP_URL>
     #
     # restore a backup to a database id
     #
-    # if no BACKUP_ID is specified, uses the most recent backup
+    # if no DATABASE is specified, defaults to DATABASE_URL
     #
-    # -d, --db DATABASE  # the database id to target for the restore
-    #
-    
     def restore
-      db = resolve_db(:allow_default => true)
+      args.unshift "DATABASE" if 1 == args.size
+
+      db = resolve_db
       to_name = db[:name]
       to_url  = db[:url]
 
@@ -97,15 +96,8 @@ module Heroku::Command
         from_uri  = URI.parse backup_id
         backup_id = from_uri.path.empty? ? from_uri : File.basename(from_uri.path)
       else
-        if backup_id
-          backup = pgbackup_client.get_backup(backup_id)
-          abort("Backup #{backup_id} already deleted.") if backup["destroyed_at"]
-        else
-          backup = pgbackup_client.get_latest_backup
-          to_uri = URI.parse backup["to_url"]
-          backup_id = File.basename(to_uri.path, '.*')
-          backup_id = "#{backup_id} (most recent)"
-        end
+        backup = pgbackup_client.get_backup(backup_id)
+        abort("Backup #{backup_id} already deleted.") if backup["destroyed_at"]
 
         from_url  = backup["to_url"]
         from_name = "BACKUP"
