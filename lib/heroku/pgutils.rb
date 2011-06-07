@@ -3,6 +3,13 @@ require 'heroku/pg_resolver'
 module PgUtils
   include PGResolver
 
+  def deprecate_dash_dash_db(name)
+    return unless args.include? "--db"
+    display " !   The --db option has been deprecated"
+    usage = Heroku::Command::Help.usage_for_command(name)
+    error " !   #{usage}"
+  end
+
   def spinner(ticks)
     %w(/ - \\ |)[ticks % 4]
   end

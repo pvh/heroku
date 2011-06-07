@@ -27,6 +27,7 @@ module Heroku::Command
     # defaults to DATABASE_URL databases if no DATABASE is specified
     #
     def ingress
+      deprecate_dash_dash_db("pg:ingress")
       uri = generate_ingress_uri("Granting ingress for 60s")
       display "Connection info string:"
       display "   \"dbname=#{uri.path[1..-1]} host=#{uri.host} user=#{uri.user} password=#{uri.password} sslmode=required\""
@@ -37,6 +38,7 @@ module Heroku::Command
     # sets DATABASE as your DATABASE_URL
     #
     def promote
+      deprecate_dash_dash_db("pg:promote")
       follower_db = resolve_db(:required => 'pg:promote')
       abort( " !  DATABASE_URL is already set to #{follower_db[:name]}") if follower_db[:default]
 
@@ -56,6 +58,7 @@ module Heroku::Command
     # defaults to DATABASE_URL databases if no DATABASE is specified
     #
     def psql
+      deprecate_dash_dash_db("pg:psql")
       uri = generate_ingress_uri("Connecting")
       ENV["PGPASSWORD"] = uri.password
       ENV["PGSSLMODE"]  = 'require'
@@ -66,6 +69,7 @@ module Heroku::Command
     #
     # delete all data in DATABASE
     def reset
+      deprecate_dash_dash_db("pg:reset")
       db = resolve_db(:required => 'pg:reset')
 
       display "Resetting #{db[:pretty_name]}"

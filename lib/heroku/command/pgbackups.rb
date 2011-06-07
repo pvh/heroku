@@ -51,6 +51,8 @@ module Heroku::Command
     # -e, --expire  # if no slots are available to capture, delete the oldest backup to make room
     #
     def capture
+      deprecate_dash_dash_db("pgbackups:capture")
+
       db = resolve_db(:allow_default => true)
 
       from_url  = db[:url]
@@ -82,6 +84,8 @@ module Heroku::Command
     # if no DATABASE is specified, defaults to DATABASE_URL
     #
     def restore
+      deprecate_dash_dash_db("pgbackups:restore")
+
       args.unshift "DATABASE" if 1 == args.size
 
       db = resolve_db
